@@ -1,0 +1,204 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  matricule String   @unique // Format ex: 25/ULC/0001/26 ou 25/ULC/PRF/001/26
+  email     String?  @unique
+  password  String
+  role      String   @default("STUDENT") // Rôles: STUDENT, PROFESSOR, DOYEN, ADMIN
+  status    String   @default("ACTIVE") // Statuts: ACTIVE, INACTIVE
+  
+  // Sécurité (Mot de passe oublié)
+  secretQuestion String?
+  secretAnswer   String?
+
+  // Lier le Doyen à une seule faculté
+  managedFacultyId String?
+  managedFaculty   Faculty? @relation("FacultyDoyen", fields: [managedFacultyId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  studentProfile   StudentProfile?
+  professorProfile ProfessorProfile?
+  
+  resources Resource[] // Ressources téléchargées par cet utilisateur (Prof ou Admin)
+  coursesTaught Course[] @relation("CourseProfessor")
+}
+
+model StudentProfile {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  nom               String
+  postnom           String?
+  prenom            String
+  
+  facultyId         String
+  faculty           Faculty  @relation(fields: [facultyId], references: [id])
+  
+  promotionId       String
+  promotion         Promotion @relation(fields: [promotionId], references: [id])
+  
+  academicYearStart Int // Exemple: 2025
+
+  surveys           PerformanceSurvey[]
+  confusionReports  ConfusionReport[]
+  courseEvaluations CourseEvaluation[]
+}
+
+model ProfessorProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  nom       String
+  prenom    String
+  yearStart Int // Exemple: 2020
+}
+
+model Faculty {
+  id          String      @id @default(cuid())
+  name        String      @unique // Ex: Sciences Informatiques, Économie, etc.
+  
+  promotions Promotion[]
+  courses    Course[]
+  students   StudentProfile[]
+  
+  // Doyens assignés à cette faculté
+  doyens      User[]      @relation("FacultyDoyen")
+}
+
+model Promotion {
+  id        String   @id @default(cuid())
+  name      String   // Ex: L1, L2, L3, M1 Réseaux, etc.
+  
+  facultyId String
+  faculty   Faculty  @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+  
+  courses   Course[]
+  students  StudentProfile[]
+
+  @@unique([name, facultyId]) // Une promotion donnée est unique par faculté
+}
+
+model Course {
+  id          String   @id @default(cuid())
+  name        String
+  code        String   
+  
+  facultyId   String
+  faculty     Faculty  @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+  
+  promotionId String
+  promotion   Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  
+  semester    Int // Semestre 1 ou 2
+  
+  professorId String?
+  professor   User?    @relation("CourseProfessor", fields: [professorId], references: [id])
+
+  confusionReports ConfusionReport[]
+  resources        Resource[]
+  schedules        Schedule[]
+  evaluations      CourseEvaluation[]
+
+  @@unique([code, promotionId])
+}
+
+// Enquête de performance multidimensionnelle hebdomadaire
+model PerformanceSurvey {
+  id              String   @id @default(cuid())
+  
+  studentId       String
+  student         StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  
+  weekNumber      Int      // Semaine de l'année
+  
+  // Tableau des facteurs qui ont influencé la performance : ["MENTAL", "PHYSIQUE", "FINANCE", "TEMPS"]
+  selectedFactors String[] 
+  
+  // Stockage dynamique des QCMs détaillés du mémoire
+  answers         Json?
+  
+  // Réponses spécifiques aux QCMs (format texte selon ce qui a été soumis)
+  mentalState     String?
+  physicalState   String?
+  financeState    String?
+  timeState       String?
+  
+  // Description libre à la fin (Optionnelle)
+  freeNotes       String?
+  
+  createdAt       DateTime @default(now())
+}
+
+// Signalement de confusion pour un cours
+model ConfusionReport {
+  id          String   @id @default(cuid())
+  
+  studentId   String
+  student     StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  type        String   // "TP", "Theorie", "Exercice"
+  description String   // Détail du concept difficile
+  weekNumber  Int
+  
+  createdAt   DateTime @default(now())
+}
+
+// Ressources (fichiers de cours)
+model Resource {
+  id         String   @id @default(cuid())
+  title      String
+  fileUrl    String   // Chemin du fichier stocké (ex: /uploads/resources/xxx.pdf)
+  
+  courseId   String
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  uploadedBy String
+  uploader   User     @relation(fields: [uploadedBy], references: [id])
+  
+  createdAt  DateTime @default(now())
+}
+
+// Horaires
+model Schedule {
+  id        String   @id @default(cuid())
+  
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  fileUrl   String   // Chemin vers le fichier d'horaire
+  semester  Int
+  
+  createdAt DateTime @default(now())
+}
+
+// Évaluation d'un cours
+model CourseEvaluation {
+  id          String   @id @default(cuid())
+  
+  studentId   String
+  student     StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  rating      Int      // 1 to 5
+  comment     String?
+  
+  createdAt   DateTime @default(now())
+}
