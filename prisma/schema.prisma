@@ -51,9 +51,10 @@ model StudentProfile {
   
   academicYearStart Int // Exemple: 2025
 
-  surveys           PerformanceSurvey[]
-  confusionReports  ConfusionReport[]
-  courseEvaluations CourseEvaluation[]
+  surveys              PerformanceSurvey[]
+  confusionReports     ConfusionReport[]
+  courseEvaluations    CourseEvaluation[]
+  weeklyEmotionReports WeeklyEmotionReport[]
 }
 
 model ProfessorProfile {
@@ -201,4 +202,18 @@ model CourseEvaluation {
   comment     String?
   
   createdAt   DateTime @default(now())
+}
+
+// Rapport émotionnel hebdomadaire
+model WeeklyEmotionReport {
+  id           String         @id @default(cuid())
+  
+  studentId    String
+  student      StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  
+  weekNumber   Int      // Semaine de l'année
+  emotionLevel Int      // Niveau d'émotion de 1 à 5
+  description  String?  // Message/description optionnelle
+  
+  createdAt    DateTime @default(now())
 }
