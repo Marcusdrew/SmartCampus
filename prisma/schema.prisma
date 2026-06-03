@@ -55,6 +55,7 @@ model StudentProfile {
   confusionReports     ConfusionReport[]
   courseEvaluations    CourseEvaluation[]
   weeklyEmotionReports WeeklyEmotionReport[]
+  grades               Grade[]
 }
 
 model ProfessorProfile {
@@ -112,6 +113,9 @@ model Course {
   resources        Resource[]
   schedules        Schedule[]
   evaluations      CourseEvaluation[]
+  
+  credits          Int          @default(0) // Crédits du cours définis par l'admin
+  courseWorks      CourseWork[]
 
   @@unique([code, promotionId])
 }
@@ -139,6 +143,9 @@ model PerformanceSurvey {
   
   // Description libre à la fin (Optionnelle)
   freeNotes       String?
+  
+  resolved        Boolean  @default(false) // Statut de traitement par le prof/doyen
+  resolvedAt      DateTime?
   
   createdAt       DateTime @default(now())
 }
@@ -216,4 +223,29 @@ model WeeklyEmotionReport {
   description  String?  // Message/description optionnelle
   
   createdAt    DateTime @default(now())
+}
+
+// Nouveau modèle : Travaux et examens liés à un cours
+model CourseWork {
+  id           String     @id @default(cuid())
+  courseId     String
+  course       Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title        String     // ex: "Examen Partiel", "Projet Algorithmique"
+  maxGrade     Int        // ex: 10, 20, 30, 40, 50 (la note maximale possible)
+  grades       Grade[]
+  createdAt    DateTime   @default(now())
+}
+
+// Nouveau modèle : Notes individuelles obtenues par les étudiants
+model Grade {
+  id           String         @id @default(cuid())
+  studentId    String
+  student      StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  courseWorkId String
+  courseWork   CourseWork     @relation(fields: [courseWorkId], references: [id], onDelete: Cascade)
+  value        Float          // Note obtenue
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@unique([studentId, courseWorkId]) // Une note unique par étudiant par travail
 }

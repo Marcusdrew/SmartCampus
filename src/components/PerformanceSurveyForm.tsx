@@ -9,6 +9,7 @@ export default function PerformanceSurveyForm() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{type: "error" | "success", text: string} | null>(null);
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   const [selectedFactors, setSelectedFactors] = useState<string[]>([]);
   const [freeNotes, setFreeNotes] = useState("");
@@ -69,10 +70,12 @@ export default function PerformanceSurveyForm() {
 
       const data = await res.json();
       if (res.ok) {
-        setMessage({ type: "success", text: "Bilan complet envoyé avec succès ! Merci." });
-        setTimeout(() => {
-            router.refresh();
-        }, 2000);
+        setIsSubmitted(true);
+        setStep(1);
+        setSelectedFactors([]);
+        setAnswers({});
+        setFreeNotes("");
+        router.refresh();
       } else {
         setMessage({ type: "error", text: data.error || "Erreur de soumission." });
       }
@@ -117,6 +120,48 @@ export default function PerformanceSurveyForm() {
           </div>
       );
   };
+
+  if (isSubmitted) {
+    return (
+      <div className="bg-[#0b0c15]/90 border border-emerald-500/30 rounded-3xl p-8 backdrop-blur-xl shadow-2xl text-center flex flex-col items-center justify-center min-h-[400px] animate-in zoom-in duration-300">
+        <div className="w-20 h-20 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center text-4xl mb-6 border border-emerald-500/30 shadow-[0_0_30px_rgba(16,185,129,0.3)] animate-bounce">
+          ✓
+        </div>
+        <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400 tracking-tight mb-2">
+          Bilan Transmis avec Succès !
+        </h2>
+        <p className="text-gray-400 text-sm max-w-md mb-6">
+          Votre bilan a été enregistré en toute sécurité. Les informations ont été transmises confidentiellement à vos enseignants pour mieux vous soutenir.
+        </p>
+
+        {/* Récapitulatif et conseils personnalisés */}
+        <div className="w-full max-w-lg bg-black/40 border border-white/5 p-6 rounded-2xl text-left space-y-4 mb-8">
+           <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-widest">📋 Résumé de votre soumission</h4>
+           <p className="text-sm text-gray-300">Vos réponses ont bien été archivées dans notre baromètre social SmartCampus.</p>
+           
+           <h4 className="text-xs font-bold text-indigo-400 uppercase tracking-widest pt-2 border-t border-white/5">💡 Conseils personnalisés de réussite</h4>
+           <div className="space-y-3">
+              <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-sm rounded-xl">
+                 <strong>Cerveau surchargé ?</strong> Prenez 5 minutes de respiration profonde (cohérence cardiaque) avant chaque cours. Cela réduit le cortisol et libère de l'espace de mémoire.
+              </div>
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm rounded-xl">
+                 <strong>Sommeil & Énergie :</strong> Un sommeil de moins de 6h diminue vos facultés d'assimilation de 30%. Essayez de prioriser votre repos cette semaine, votre cerveau vous remerciera.
+              </div>
+              <div className="p-3 bg-amber-500/10 border border-amber-500/20 text-amber-300 text-sm rounded-xl">
+                 <strong>Gestion du temps :</strong> Testez la méthode <em>Pomodoro</em> (25 min d'étude focalisée, 5 min de pause). Cela évite l'épuisement lors de longues sessions de révision.
+              </div>
+           </div>
+        </div>
+
+        <button 
+           onClick={() => setIsSubmitted(false)}
+           className="px-8 py-3 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/20 transition-all transform hover:-translate-y-0.5"
+        >
+           Fermer et retourner au suivi
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-[#0b0c15]/90 border border-indigo-500/30 rounded-3xl p-8 backdrop-blur-xl shadow-2xl relative overflow-hidden">

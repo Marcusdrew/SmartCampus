@@ -8,6 +8,23 @@ import StudentAIClient from "@/components/StudentAIClient";
 
 import { useRouter } from "next/navigation";
 
+const getGradeStatus = (value: number, maxGrade: number) => {
+  const half = maxGrade / 2;
+  if (value < half) return { label: "Échec", color: "bg-red-500/20 text-red-400 border-red-500/30" };
+  if (value === half) return { label: "Entraîné", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" };
+
+  let threshold = half + 1;
+  if (maxGrade === 10) threshold = 6;
+  else if (maxGrade === 20) threshold = 12;
+  else if (maxGrade === 30) threshold = 17;
+  else if (maxGrade === 40) threshold = 22;
+  else if (maxGrade === 50) threshold = 27;
+
+  return value >= threshold 
+    ? { label: "Validé", color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" }
+    : { label: "Entraîné", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" };
+};
+
 export default function StudentDashboard({ studentCourses, profile, faculties, sessionUser, surveys }: { studentCourses: any[], profile: any, faculties: any[], sessionUser: any, surveys: any[] }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"COURS" | "SUIVI" | "IA">("COURS");
@@ -105,54 +122,150 @@ export default function StudentDashboard({ studentCourses, profile, faculties, s
         
         {/* TAB 1: COURS */}
         {activeTab === "COURS" && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {studentCourses.length === 0 ? (
-                <div className="col-span-full border border-dashed border-white/20 rounded-3xl p-12 text-center bg-white/5">
-                <span className="text-6xl mb-4 block">📭</span>
-                <h3 className="text-xl font-bold text-white mb-2">Aucun cours disponible</h3>
-                <p className="text-gray-400">Vous n'êtes inscrit à aucun cours pour ce semestre.</p>
-                </div>
-            ) : (
-                studentCourses.map(course => (
-                <div key={course.id} className="bg-[#110212]/80 border border-fuchsia-900/40 rounded-3xl p-6 lg:p-8 relative overflow-hidden group shadow-2xl backdrop-blur-md hover:-translate-y-1 transition-all">
-                    <div className="absolute top-[-50%] right-[-10%] w-[200px] h-[200px] bg-fuchsia-600/20 rounded-full blur-[80px] group-hover:bg-fuchsia-500/30 transition-colors pointer-events-none"></div>
-                    
-                    <div className="flex items-center justify-between mb-6 pb-6 border-b border-white/5">
-                        <div>
-                        <span className="px-3 py-1 bg-fuchsia-500/20 text-fuchsia-300 text-xs font-bold rounded-lg mb-3 inline-block font-mono tracking-wider shadow-[0_0_10px_rgba(217,70,239,0.3)]">{course.code}</span>
-                        <h3 className="text-xl sm:text-2xl font-black text-white">{course.name}</h3>
-                        <p className="mt-2 text-sm text-fuchsia-200/60 font-medium">
-                           Enseigné par : {course.professor ? (
-                              <span className="text-fuchsia-300 font-bold">Prof. {course.professor.professorProfile ? `${course.professor.professorProfile.nom} ${course.professor.professorProfile.prenom}` : course.professor.matricule}</span>
-                           ) : (
-                              <span className="italic text-gray-500">Professeur non assigné</span>
-                           )}
-                        </p>
-                        </div>
-                    </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-6">
+              {studentCourses.length === 0 ? (
+                  <div className="border border-dashed border-white/20 rounded-3xl p-12 text-center bg-white/5">
+                  <span className="text-6xl mb-4 block">📭</span>
+                  <h3 className="text-xl font-bold text-white mb-2">Aucun cours disponible</h3>
+                  <p className="text-gray-400">Vous n'êtes inscrit à aucun cours pour ce semestre.</p>
+                  </div>
+              ) : (
+                  studentCourses.map(course => (
+                  <div key={course.id} className="bg-[#110212]/80 border border-fuchsia-900/40 rounded-3xl p-6 lg:p-8 relative overflow-hidden group shadow-2xl backdrop-blur-md hover:-translate-y-1 transition-all">
+                      <div className="absolute top-[-50%] right-[-10%] w-[200px] h-[200px] bg-fuchsia-600/20 rounded-full blur-[80px] group-hover:bg-fuchsia-500/30 transition-colors pointer-events-none"></div>
+                      
+                      <div className="flex items-center justify-between mb-6 pb-6 border-b border-white/5">
+                          <div>
+                          <span className="px-3 py-1 bg-fuchsia-500/20 text-fuchsia-300 text-xs font-bold rounded-lg mb-3 inline-block font-mono tracking-wider shadow-[0_0_10px_rgba(217,70,239,0.3)]">{course.code}</span>
+                          <h3 className="text-xl sm:text-2xl font-black text-white">{course.name}</h3>
+                          <p className="mt-2 text-sm text-fuchsia-200/60 font-medium">
+                             Enseigné par : {course.professor ? (
+                                <span className="text-fuchsia-300 font-bold">Prof. {course.professor.professorProfile ? `${course.professor.professorProfile.nom} ${course.professor.professorProfile.prenom}` : course.professor.matricule}</span>
+                             ) : (
+                                <span className="italic text-gray-500">Professeur non assigné</span>
+                             )}
+                          </p>
+                          </div>
+                      </div>
+  
+                      <div className="space-y-6">
+                          <div>
+                          <h4 className="flex items-center gap-2 text-sm font-bold text-gray-400 mb-3 uppercase tracking-wider"><span className="text-lg">📁</span> Ressources Pédagogiques</h4>
+                          {course.resources.length === 0 ? (
+                              <p className="text-sm italic text-gray-500 bg-black/20 p-3 rounded-xl border border-white/5 text-center">Aucune ressource publiée</p>
+                          ) : (
+                              <ul className="space-y-2">
+                              {course.resources.map((res: any) => (
+                                  <li key={res.id}>
+                                  <a href={res.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center p-3 rounded-xl bg-gradient-to-r from-white/5 to-transparent hover:from-fuchsia-500/20 hover:to-transparent border border-white/10 hover:border-fuchsia-500/30 transition-all group/link">
+                                      <span className="bg-fuchsia-500/20 p-2 rounded-lg text-fuchsia-400 mr-3 group-hover/link:scale-110 transition-transform shadow-[0_0_10px_rgba(217,70,239,0.3)]">📄</span>
+                                      <span className="text-gray-200 font-medium group-hover/link:text-white transition-colors">{res.title}</span>
+                                  </a>
+                                  </li>
+                              ))}
+                              </ul>
+                          )}
+                          </div>
+                          
+                          {/* Mes Notes & Crédits */}
+                          <div className="pt-6 mt-6 border-t border-white/5 space-y-4">
+                             <div className="flex justify-between items-center">
+                                <h4 className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-widest">
+                                   <span className="text-lg">📊</span> Notes & Coefficients
+                                </h4>
+                                <span className="text-[10px] font-mono bg-cyan-500/10 text-cyan-400 px-2.5 py-1 rounded-full border border-cyan-500/20 shadow-[0_0_10px_rgba(6,182,212,0.1)]">
+                                   {course.credits} Crédits
+                                </span>
+                             </div>
 
-                    <div className="space-y-6">
-                        <div>
-                        <h4 className="flex items-center gap-2 text-sm font-bold text-gray-400 mb-3 uppercase tracking-wider"><span className="text-lg">📁</span> Ressources Pédagogiques</h4>
-                        {course.resources.length === 0 ? (
-                            <p className="text-sm italic text-gray-500 bg-black/20 p-3 rounded-xl border border-white/5 text-center">Aucune ressource publiée</p>
-                        ) : (
-                            <ul className="space-y-2">
-                            {course.resources.map((res: any) => (
-                                <li key={res.id}>
-                                <a href={res.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center p-3 rounded-xl bg-gradient-to-r from-white/5 to-transparent hover:from-fuchsia-500/20 hover:to-transparent border border-white/10 hover:border-fuchsia-500/30 transition-all group/link">
-                                    <span className="bg-fuchsia-500/20 p-2 rounded-lg text-fuchsia-400 mr-3 group-hover/link:scale-110 transition-transform shadow-[0_0_10px_rgba(217,70,239,0.3)]">📄</span>
-                                    <span className="text-gray-200 font-medium group-hover/link:text-white transition-colors">{res.title}</span>
-                                </a>
-                                </li>
-                            ))}
-                            </ul>
-                        )}
-                        </div>
-                    </div>
-                </div>
-                ))
-            )}
+                             {course.courseWorks.length === 0 ? (
+                                <p className="text-xs italic text-gray-500 bg-black/20 p-3 rounded-xl border border-white/5 text-center">
+                                   Aucune note publiée pour ce cours
+                                </p>
+                             ) : (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                   {course.courseWorks.map((work: any) => {
+                                      const studentGrade = work.grades?.[0];
+                                      const value = studentGrade?.value;
+                                      const status = value !== undefined ? getGradeStatus(value, work.maxGrade) : null;
+
+                                      return (
+                                         <div key={work.id} className="p-3 bg-black/30 border border-white/5 rounded-xl flex items-center justify-between text-sm hover:border-white/10 transition-colors">
+                                            <div>
+                                               <span className="block font-medium text-gray-300 truncate max-w-[120px]">{work.title}</span>
+                                               <span className="text-[10px] font-mono text-gray-500">Barème : / {work.maxGrade}</span>
+                                            </div>
+                                            <div className="text-right">
+                                               {value !== undefined ? (
+                                                  <div className="space-y-1">
+                                                     <span className="block font-black text-white text-sm">{value} <span className="text-[10px] text-gray-400">/ {work.maxGrade}</span></span>
+                                                     <span className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-black border ${status?.color}`}>
+                                                        {status?.label}
+                                                     </span>
+                                                  </div>
+                                               ) : (
+                                                  <span className="text-xs italic text-gray-600">Non noté</span>
+                                               )}
+                                            </div>
+                                         </div>
+                                      );
+                                   })}
+                                </div>
+                             )}
+                          </div>
+                      </div>
+                  </div>
+                  ))
+              )}
+            </div>
+
+            {/* Hub Réussite SmartCampus */}
+            <div className="bg-[#050e1a]/90 border border-cyan-900/40 rounded-3xl p-6 shadow-2xl backdrop-blur-md h-fit space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+               <div className="flex items-center gap-3 pb-4 border-b border-white/10">
+                  <span className="text-3xl">💡</span>
+                  <div>
+                     <h3 className="text-lg font-bold text-white">Hub de Réussite</h3>
+                     <p className="text-xs text-cyan-200/50">Astuces et conseils de réussite ULC</p>
+                  </div>
+               </div>
+               
+               <div className="space-y-4">
+                  <div className="p-4 bg-cyan-950/20 border border-cyan-500/20 rounded-2xl flex gap-3">
+                     <span className="text-2xl mt-0.5">📅</span>
+                     <div>
+                        <h4 className="text-sm font-bold text-cyan-300">Planification d'Études</h4>
+                        <p className="text-xs text-gray-300 mt-1 leading-relaxed">
+                           Priorisez les cours à forts coefficients ou crédits (comme l'Algorithmique à 6 crédits) et révisez-les au moins 3 fois par semaine.
+                        </p>
+                     </div>
+                  </div>
+
+                  <div className="p-4 bg-indigo-950/20 border border-indigo-500/20 rounded-2xl flex gap-3">
+                     <span className="text-2xl mt-0.5">⚡</span>
+                     <div>
+                        <h4 className="text-sm font-bold text-indigo-300">Régularité & Productivité</h4>
+                        <p className="text-xs text-gray-300 mt-1 leading-relaxed">
+                           Étudier 45 minutes par jour de façon ciblée est 3 fois plus efficace que de réviser 8 heures la veille d'un examen.
+                        </p>
+                     </div>
+                  </div>
+
+                  <div className="p-4 bg-emerald-950/20 border border-emerald-500/20 rounded-2xl flex gap-3">
+                     <span className="text-2xl mt-0.5">🧠</span>
+                     <div>
+                        <h4 className="text-sm font-bold text-emerald-300">Santé Mentale & Support</h4>
+                        <p className="text-xs text-gray-300 mt-1 leading-relaxed">
+                           Ne restez pas bloqué ! Si un concept vu en cours est flou, utilisez l'onglet <strong>Suivi & Évaluations</strong> pour envoyer une <strong>Alerte Confusion</strong> anonyme à votre professeur.
+                        </p>
+                     </div>
+                  </div>
+               </div>
+
+               <div className="p-4 bg-gradient-to-r from-cyan-900/30 to-blue-900/30 border border-cyan-500/30 rounded-2xl text-center">
+                  <p className="text-xs text-cyan-200 italic">"La persévérance est la clé de la réussite universitaire."</p>
+               </div>
+            </div>
           </div>
         )}
 

@@ -11,7 +11,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
     }
 
-    const { name, code, semester, facultyId, promotionId, professorId } = await req.json();
+    const { name, code, semester, facultyId, promotionId, professorId, credits } = await req.json();
 
     if (!name || !code || !semester || !facultyId || !promotionId) {
       return NextResponse.json({ error: "Tous les champs sont requis" }, { status: 400 });
@@ -50,6 +50,7 @@ export async function POST(req: Request) {
         facultyId,
         promotionId,
         professorId: professorId || null,
+        credits: credits ? parseInt(credits.toString(), 10) : 0,
       }
     });
 

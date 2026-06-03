@@ -118,7 +118,7 @@ export default function ForgotPasswordPage() {
             <div>
                <label className="block text-sm font-bold text-gray-300 mb-2">Votre Réponse</label>
                <input 
-                 type="password" 
+                 type="text" 
                  required 
                  placeholder="Saisissez votre réponse..."
                  value={answer} 

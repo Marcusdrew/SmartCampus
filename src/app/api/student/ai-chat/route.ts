@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export async function POST(req: Request) {
   try {
@@ -16,38 +18,61 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Messages requis" }, { status: 400 });
     }
 
-    const apiKey = process.env.GROQ_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      return NextResponse.json({ error: "Clé API non configurée." }, { status: 500 });
+      return NextResponse.json({ error: "Clé API Gemini non configurée." }, { status: 500 });
     }
 
-    const systemMessage = {
-      role: "system",
-      content: "Tu es un assistant IA universitaire bienveillant pour l'Université ULC. Tu aides les étudiants à comprendre leurs cours, à organiser leurs révisions et à répondre au mieux à leurs questions. Reste professionnel, encourageant, concis et parle en français."
-    };
-
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: "llama3-8b-8192",
-        messages: [systemMessage, ...messages],
-        temperature: 0.7,
-        max_tokens: 500,
-      })
+    // Récupérer le profil étudiant avec ses cours et sa faculté
+    const studentProfile = await prisma.studentProfile.findUnique({
+      where: { userId: session.user.id },
+      include: {
+        promotion: {
+          include: {
+            courses: true
+          }
+        },
+        faculty: true
+      }
     });
 
-    if (!response.ok) {
-      const errData = await response.text();
-      console.error("Groq API Error:", errData);
-      return NextResponse.json({ error: "Erreur du service IA" }, { status: 500 });
+    if (!studentProfile) {
+      return NextResponse.json({ error: "Profil étudiant introuvable" }, { status: 404 });
     }
 
-    const data = await response.json();
-    const reply = data.choices[0]?.message?.content || "Désolé, je n'ai pas pu formuler de réponse.";
+    const coursesList = studentProfile.promotion?.courses
+      .map(c => `[${c.code}] ${c.name}`)
+      .join(", ") || "aucun cours";
+
+    const systemMessage = `Tu es l'assistant d'apprentissage IA officiel de SmartCampus pour l'étudiant ${studentProfile.prenom} ${studentProfile.nom} qui est en Faculté de ${studentProfile.faculty?.name}, promotion ${studentProfile.promotion?.name}.
+    
+    Voici la liste officielle des cours suivis par cet étudiant dans son programme d'études :
+    ${coursesList}
+    
+    Directives strictes :
+    1. Tu es configuré pour être un tuteur académique ciblé. Tu dois UNIQUEMENT aider l'étudiant à comprendre, réviser et répondre à des questions académiques liées DIRECTEMENT à ces matières.
+    2. Si l'étudiant pose une question en dehors de ce programme d'études (ex: culture générale hors-sujet, autres spécialités, questions de divertissement, etc.), tu dois REFUSER POLIMENT d'y répondre. Rappelle-lui de manière bienveillante que ton rôle est de le maintenir concentré sur ses matières de ${studentProfile.promotion?.name}.
+    3. Exprime-toi en français, de façon claire, concise, encourageante et réactive.`;
+
+    // Initialiser le SDK Gemini
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    // Préparer l'historique (les messages précédents)
+    // On convertit le format {"role": "user"|"assistant", "content"} vers le format Gemini {"role": "user"|"model", "parts": [{"text"}]}
+    const formattedHistory = messages.slice(0, -1).map(m => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content }]
+    }));
+
+    const chat = model.startChat({
+      history: formattedHistory,
+      systemInstruction: systemMessage
+    });
+
+    const lastUserMessage = messages[messages.length - 1]?.content || "";
+    const result = await chat.sendMessage(lastUserMessage);
+    const reply = result.response.text();
 
     return NextResponse.json({ reply });
   } catch (error: any) {

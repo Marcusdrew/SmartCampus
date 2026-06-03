@@ -98,7 +98,7 @@ export default function SecuritySetupModal({ isVisible }: { isVisible: boolean }
           <div>
             <label className="block text-sm font-bold text-blue-200/60 mb-2">Votre réponse (Secrète)</label>
             <input 
-              type="password" 
+              type="text" 
               required 
               value={answer} 
               onChange={(e) => setAnswer(e.target.value)} 

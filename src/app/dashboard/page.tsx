@@ -67,7 +67,22 @@ export default async function DashboardPage() {
     if (role === "PROFESSOR") {
       profCourses = await prisma.course.findMany({
         where: { professorId: session.user.id },
-        include: { promotion: true }
+        include: { 
+          promotion: {
+            include: {
+              students: {
+                include: {
+                  grades: true
+                }
+              }
+            }
+          },
+          courseWorks: {
+            include: {
+              grades: true
+            }
+          }
+        }
       });
       const courseIds = profCourses.map((c: any) => c.id);
 
@@ -113,7 +128,7 @@ export default async function DashboardPage() {
     if (profile) {
       studentProfileObj = profile;
       userName = `${profile.prenom} ${profile.nom}`;
-      studentCourses = await prisma.course.findMany({
+       studentCourses = await prisma.course.findMany({
         where: {
           promotionId: profile.promotionId,
           facultyId: profile.facultyId
@@ -121,7 +136,14 @@ export default async function DashboardPage() {
         include: {
           resources: { orderBy: { createdAt: 'desc' } },
           schedules: { orderBy: { createdAt: 'desc' } },
-          professor: { include: { professorProfile: true } }
+          professor: { include: { professorProfile: true } },
+          courseWorks: {
+            include: {
+              grades: {
+                where: { studentId: profile.id }
+              }
+            }
+          }
         }
       });
       studentSurveys = await prisma.performanceSurvey.findMany({
