@@ -39,11 +39,13 @@ export default function StudentAIClient() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Erreur IA");
+      if (!res.ok) {
+        throw new Error(data.error + (data.details ? ` (${data.details})` : "") || "Erreur IA");
+      }
 
       setMessages([...newMessages, { role: "assistant", content: data.reply }]);
     } catch (err: any) {
-      setMessages([...newMessages, { role: "assistant", content: "Erreur: Impossible de contacter l'assistant IA." }]);
+      setMessages([...newMessages, { role: "assistant", content: `Erreur : ${err.message || "Impossible de contacter l'assistant IA."}` }]);
     } finally {
       setLoading(false);
     }

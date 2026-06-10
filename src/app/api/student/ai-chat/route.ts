@@ -20,7 +20,8 @@ export async function POST(req: Request) {
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      return NextResponse.json({ error: "Clé API Gemini non configurée." }, { status: 500 });
+      console.error("DÉTAIL ERREUR IA : La variable d'environnement GEMINI_API_KEY est manquante ou vide dans les paramètres du projet.");
+      return NextResponse.json({ error: "Clé API Gemini non configurée. Veuillez ajouter la variable d'environnement GEMINI_API_KEY sur votre tableau de bord Vercel." }, { status: 500 });
     }
 
     // Récupérer le profil étudiant avec ses cours et sa faculté
@@ -76,7 +77,10 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ reply });
   } catch (error: any) {
-    console.error("Erreur Student AI:", error);
-    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+    console.error("DÉTAIL ERREUR IA (Gemini Exception) :", error);
+    return NextResponse.json({ 
+      error: "Erreur lors de la communication avec le service Gemini IA.",
+      details: error.message || error.toString()
+    }, { status: 500 });
   }
 }

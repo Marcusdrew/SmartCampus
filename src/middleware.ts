@@ -25,7 +25,6 @@ export default withAuth(
   }
 );
 
-// On protège le dashboard et toutes les routes internes
 export const config = {
-  matcher: ["/dashboard/:path*", "/admin/:path*"],
+  matcher: ["/dashboard/:path*", "/admin/users/:path*", "/admin/faculties/:path*", "/admin/courses/:path*"],
 };

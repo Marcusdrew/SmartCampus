@@ -50,6 +50,7 @@ export default async function DashboardPage() {
   let doyenCoursesCount = 0;
   let doyenStudentsCount = 0;
   let doyenSurveys: any[] = [];
+  let doyenConfusions: any[] = [];
   
   let userName = "";
   let nameColor = "text-blue-400";
@@ -105,13 +106,42 @@ export default async function DashboardPage() {
 
       doyenFaculties = await prisma.faculty.findMany({
         where: facultyFilter,
-        include: { promotions: { include: { _count: { select: { students: true } } } } }
+        include: {
+          promotions: {
+            include: {
+              students: {
+                include: {
+                  grades: true
+                }
+              },
+              courses: {
+                include: {
+                  courseWorks: {
+                    include: {
+                      grades: true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       });
       doyenCoursesCount = await prisma.course.count({ where: { facultyId: facultyFilter.id } });
       doyenStudentsCount = await prisma.studentProfile.count({ where: { facultyId: facultyFilter.id } });
       doyenSurveys = await prisma.performanceSurvey.findMany({
          where: { student: { facultyId: facultyFilter.id } },
          include: { student: { include: { promotion: true } } }
+      });
+      doyenConfusions = await prisma.confusionReport.findMany({
+        where: { course: { facultyId: facultyFilter.id } },
+        include: { 
+          course: { 
+            include: { promotion: true } 
+          },
+          student: true 
+        },
+        orderBy: { createdAt: "desc" }
       });
     }
 
@@ -255,7 +285,7 @@ export default async function DashboardPage() {
 
         {/* --- SECTION DOYEN --- */}
         {role === "DOYEN" && (
-           <DoyenDashboard faculties={doyenFaculties} totalCourses={doyenCoursesCount} totalStudents={doyenStudentsCount} surveys={doyenSurveys} />
+           <DoyenDashboard faculties={doyenFaculties} totalCourses={doyenCoursesCount} totalStudents={doyenStudentsCount} surveys={doyenSurveys} confusions={doyenConfusions} />
         )}
 
         {/* --- SECTION ÉTUDIANT --- */}

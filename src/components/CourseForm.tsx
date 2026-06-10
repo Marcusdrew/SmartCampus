@@ -18,6 +18,7 @@ export default function CourseForm({ faculties, professors }: { faculties: Facul
     promotionId: "",
     professorId: "",
     credits: "0",
+    maxGrade: "50",
   });
 
   const [availablePromotions, setAvailablePromotions] = useState<Promotion[]>([]);
@@ -54,7 +55,7 @@ export default function CourseForm({ faculties, professors }: { faculties: Facul
       if (!res.ok) throw new Error(data.error || "Erreur lors de la création");
 
       setMsg({ text: "Cours ajouté avec succès!", type: "success" });
-      setFormData({ name: "", code: "", semester: "1", facultyId: "", promotionId: "", professorId: "", credits: "0" });
+      setFormData({ name: "", code: "", semester: "1", facultyId: "", promotionId: "", professorId: "", credits: "0", maxGrade: "50" });
       router.refresh();
       setTimeout(() => setMsg({ text: "", type: "" }), 3000);
     } catch (err: any) {
@@ -120,6 +121,10 @@ export default function CourseForm({ faculties, professors }: { faculties: Facul
         <div>
           <label className="block text-sm font-bold text-indigo-200/60 mb-2">Crédits du Cours (Coeff)</label>
           <input type="number" name="credits" required min="0" value={formData.credits} onChange={handleChange} className="w-full rounded-2xl border border-white/10 px-5 py-3.5 bg-black/40 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-colors" />
+        </div>
+        <div>
+          <label className="block text-sm font-bold text-indigo-200/60 mb-2">Pondération Globale (sur X points)</label>
+          <input type="number" name="maxGrade" required min="1" value={formData.maxGrade} onChange={handleChange} className="w-full rounded-2xl border border-white/10 px-5 py-3.5 bg-black/40 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-colors" />
         </div>
       </div>
 

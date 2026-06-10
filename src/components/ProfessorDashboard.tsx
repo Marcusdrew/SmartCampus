@@ -112,7 +112,7 @@ export default function ProfessorDashboard({ courses, confusions, surveys }: Pro
   // --- CARNET DE NOTES STATE & LOGIQUE ---
   const [selectedCourseId, setSelectedCourseId] = useState(courses[0]?.id || "");
   const [selectedCourseWorkId, setSelectedCourseWorkId] = useState("");
-  const [newWorkTitle, setNewWorkTitle] = useState("");
+  const [evaluationType, setEvaluationType] = useState<"Examen" | "TP" | "Interrogation">("TP");
   const [newWorkMaxGrade, setNewWorkMaxGrade] = useState("20");
   const [savingGradeId, setSavingGradeId] = useState<string | null>(null);
   const [gradeInputs, setGradeInputs] = useState<Record<string, string>>({});
@@ -122,10 +122,54 @@ export default function ProfessorDashboard({ courses, confusions, surveys }: Pro
   const courseWorks = selectedCourse?.courseWorks || [];
   const students = selectedCourse?.promotion?.students || [];
 
+  const calculateAverage = (studentId: string) => {
+    let totalObtained = 0;
+    let totalMax = 0;
+
+    courseWorks.forEach((work: any) => {
+      const grade = work.grades?.find((g: any) => g.studentId === studentId);
+      if (grade !== undefined && grade !== null) {
+        totalObtained += grade.value;
+        totalMax += work.maxGrade;
+      }
+    });
+
+    if (totalMax === 0) return null;
+
+    const courseMaxGrade = selectedCourse?.maxGrade || 50;
+    return (totalObtained / totalMax) * courseMaxGrade;
+  };
+
+  const getAverageStatus = (value: number) => {
+    const courseMaxGrade = selectedCourse?.maxGrade || 50;
+    const half = courseMaxGrade / 2;
+    if (value < half) return { label: "Échec", color: "bg-red-500/20 text-red-400 border-red-500/30" };
+    if (value === half) return { label: "Entraîné", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" };
+
+    let threshold = half + 1;
+    if (courseMaxGrade === 10) threshold = 6;
+    else if (courseMaxGrade === 20) threshold = 12;
+    else if (courseMaxGrade === 30) threshold = 17;
+    else if (courseMaxGrade === 40) threshold = 22;
+    else if (courseMaxGrade === 50) threshold = 27;
+
+    return value >= threshold 
+      ? { label: "Validé", color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" }
+      : { label: "Entraîné", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" };
+  };
+
   const handleCreateCourseWork = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newWorkTitle.trim() || !selectedCourseId) return;
+    if (!selectedCourseId) return;
     setAddingWork(true);
+
+    let title: string = evaluationType;
+    if (evaluationType === "TP" || evaluationType === "Interrogation") {
+      const count = courseWorks.filter((w: any) =>
+        w.title.toLowerCase().startsWith(evaluationType.toLowerCase())
+      ).length;
+      title = `${evaluationType} ${count + 1}`;
+    }
 
     try {
       const res = await fetch("/api/grades/coursework", {
@@ -133,13 +177,13 @@ export default function ProfessorDashboard({ courses, confusions, surveys }: Pro
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           courseId: selectedCourseId,
-          title: newWorkTitle,
+          title,
           maxGrade: Number(newWorkMaxGrade),
         }),
       });
 
       if (res.ok) {
-        setNewWorkTitle("");
+        setEvaluationType("TP");
         setNewWorkMaxGrade("20");
         router.refresh();
       } else {
@@ -594,15 +638,16 @@ export default function ProfessorDashboard({ courses, confusions, surveys }: Pro
                     </h3>
                     <form onSubmit={handleCreateCourseWork} className="space-y-4">
                       <div>
-                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Nom du devoir / examen</label>
-                        <input
-                          type="text"
-                          required
-                          value={newWorkTitle}
-                          onChange={(e) => setNewWorkTitle(e.target.value)}
-                          placeholder="Ex: Examen Final, TP 1, QCM"
-                          className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                        />
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Type d'évaluation</label>
+                        <select
+                          value={evaluationType}
+                          onChange={(e) => setEvaluationType(e.target.value as any)}
+                          className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 [&>option]:bg-gray-900"
+                        >
+                          <option value="TP">TP</option>
+                          <option value="Interrogation">Interrogation</option>
+                          <option value="Examen">Examen</option>
+                        </select>
                       </div>
                       <div>
                         <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Note maximale (Barème)</label>
@@ -679,6 +724,7 @@ export default function ProfessorDashboard({ courses, confusions, surveys }: Pro
                               <thead>
                                 <tr className="border-b border-white/10">
                                   <th className="p-3 text-xs font-bold text-gray-400 uppercase">Étudiant</th>
+                                  <th className="p-3 text-xs font-bold text-gray-400 uppercase text-center">Moyenne Globale</th>
                                   <th className="p-3 text-xs font-bold text-gray-400 uppercase text-center w-1/4">Note / {activeWork.maxGrade}</th>
                                   <th className="p-3 text-xs font-bold text-gray-400 uppercase text-center">État</th>
                                   <th className="p-3 text-xs font-bold text-gray-400 uppercase text-right w-1/4">Action</th>
@@ -698,6 +744,21 @@ export default function ProfessorDashboard({ courses, confusions, surveys }: Pro
                                     <tr key={student.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                                       <td className="p-3">
                                         <div className="text-white font-bold">{student.prenom} {student.nom}</div>
+                                      </td>
+                                      <td className="p-3 text-center">
+                                        {(() => {
+                                          const avg = calculateAverage(student.id);
+                                          if (avg === null) return <span className="text-gray-500 text-xs italic">N/A</span>;
+                                          const avgStatus = getAverageStatus(avg);
+                                          return (
+                                            <div className="flex flex-col items-center gap-1">
+                                              <span className="font-bold text-white">{avg.toFixed(1)} / {selectedCourse.maxGrade || 50}</span>
+                                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${avgStatus.color}`}>
+                                                {avgStatus.label}
+                                              </span>
+                                            </div>
+                                          );
+                                        })()}
                                       </td>
                                       <td className="p-3 text-center">
                                         <input

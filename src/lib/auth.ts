@@ -9,7 +9,8 @@ export const authOptions: NextAuthOptions = {
       name: "SmartCampus",
       credentials: {
         matricule: { label: "Matricule", type: "text", placeholder: "25/ULC/0001/26" },
-        password: { label: "Mot de passe", type: "password" }
+        password: { label: "Mot de passe", type: "password" },
+        isAdminPortal: { label: "isAdminPortal", type: "text" }
       },
       async authorize(credentials) {
         if (!credentials?.matricule || !credentials?.password) {
@@ -30,6 +31,18 @@ export const authOptions: NextAuthOptions = {
         
         if (user.status !== "ACTIVE") {
           throw new Error("Votre compte n'est pas actif. Veuillez contacter l'administration.");
+        }
+
+        // Vérification de sécurité pour le portail administrateur
+        const isAdmin = user.role === "ADMIN";
+        const isLoggingViaAdminPortal = credentials.isAdminPortal === "true";
+
+        if (isAdmin && !isLoggingViaAdminPortal) {
+          throw new Error("Les comptes administrateurs doivent obligatoirement se connecter via le portail dédié.");
+        }
+
+        if (!isAdmin && isLoggingViaAdminPortal) {
+          throw new Error("Accès refusé. Ce portail de connexion est réservé exclusivement aux administrateurs.");
         }
 
         const isPasswordValid = await bcrypt.compare(credentials.password, user.password);

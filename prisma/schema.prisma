@@ -115,6 +115,7 @@ model Course {
   evaluations      CourseEvaluation[]
   
   credits          Int          @default(0) // Crédits du cours définis par l'admin
+  maxGrade         Int          @default(50) // Pondération globale du cours (ex: 50 points)
   courseWorks      CourseWork[]
 
   @@unique([code, promotionId])
