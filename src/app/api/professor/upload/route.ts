@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { put } from "@vercel/blob";
+import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
+
+// This route handles TWO things:
+// 1. POST with JSON body -> handleUpload (client-side blob token generation)
+// 2. POST with ?action=save -> Save DB record after client upload completes
 
 export async function POST(req: Request) {
   try {
@@ -12,61 +16,94 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
     }
 
-    const formData = await req.formData();
-    
-    const file = formData.get("file") as File;
-    const title = formData.get("title") as string;
-    const courseId = formData.get("courseId") as string;
-    const type = formData.get("type") as string; // 'resource' ou 'schedule'
-    const semester = formData.get("semester") as string; // requis pour 'schedule'
+    const url = new URL(req.url);
+    const action = url.searchParams.get("action");
 
-    if (!file || !courseId || !type) {
-      return NextResponse.json({ error: "Fichier, cours et type sont obligatoires." }, { status: 400 });
+    // --- ACTION: Save DB record after client upload ---
+    if (action === "save") {
+      const body = await req.json();
+      const { type, title, courseId, semester, fileUrl } = body;
+
+      if (!courseId || !type || !fileUrl) {
+        return NextResponse.json({ error: "Données manquantes." }, { status: 400 });
+      }
+
+      if (type === "schedule") {
+        const schedule = await prisma.schedule.create({
+          data: {
+            courseId,
+            fileUrl,
+            semester: parseInt(semester || "1", 10),
+          },
+        });
+        return NextResponse.json({ success: true, schedule });
+      } else {
+        if (!title) {
+          return NextResponse.json({ error: "Le titre est obligatoire pour une ressource." }, { status: 400 });
+        }
+        const resource = await prisma.resource.create({
+          data: {
+            title,
+            courseId,
+            fileUrl,
+            uploadedBy: session.user.id,
+          },
+        });
+        return NextResponse.json({ success: true, resource });
+      }
     }
 
-    // Mettre en ligne le fichier sur Vercel Blob
-    // Créer un nom de fichier unique
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    const filename = `${uniqueSuffix}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`; // clean filename
+    // --- DEFAULT: Handle client-side blob upload token generation ---
+    const body = (await req.json()) as HandleUploadBody;
 
-    // Le dossier sera défini dans le nom de base du fichier Blob
-    const uploadDir = type === "schedule" ? "schedules" : "resources";
-    
-    // Upload vers Vercel avec politique d'accès publique
-    const blobResponse = await put(`${uploadDir}/${filename}`, file, {
-      access: 'public',
-      addRandomSuffix: false // Nous avons déjà un suffixe unique
+    const jsonResponse = await handleUpload({
+      body,
+      request: req,
+      onBeforeGenerateToken: async (pathname) => {
+        // Authorize the upload
+        return {
+          allowedContentTypes: [
+            // Documents
+            "application/pdf",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.ms-powerpoint",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "application/vnd.ms-excel",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            // Archives
+            "application/zip",
+            "application/x-zip-compressed",
+            "application/x-rar-compressed",
+            "application/x-7z-compressed",
+            // Images
+            "image/jpeg",
+            "image/png",
+            "image/gif",
+            "image/webp",
+            "image/svg+xml",
+            // Text
+            "text/plain",
+            "text/csv",
+            // Audio/Video
+            "audio/mpeg",
+            "video/mp4",
+          ],
+          maximumSizeInBytes: 100 * 1024 * 1024, // 100MB max
+        };
+      },
+      onUploadCompleted: async ({ blob }) => {
+        // No-op: DB save is handled by the separate ?action=save call
+        console.log("Blob upload completed:", blob.url);
+      },
     });
 
-    const filePublicUrl = blobResponse.url;
-
-    // Enregistrer en base de données
-    if (type === "schedule") {
-      const schedule = await prisma.schedule.create({
-        data: {
-          courseId,
-          fileUrl: filePublicUrl,
-          semester: parseInt(semester || "1", 10),
-        }
-      });
-      return NextResponse.json({ success: true, schedule });
-    } else {
-      if (!title) {
-        return NextResponse.json({ error: "Le titre est obligatoire pour une ressource." }, { status: 400 });
-      }
-      const resource = await prisma.resource.create({
-        data: {
-          title,
-          courseId,
-          fileUrl: filePublicUrl,
-          uploadedBy: session.user.id
-        }
-      });
-      return NextResponse.json({ success: true, resource });
-    }
-
+    return NextResponse.json(jsonResponse);
   } catch (error: any) {
     console.error("Erreur d'upload:", error);
-    return NextResponse.json({ error: "Erreur lors de l'upload du fichier" }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message || "Erreur lors de l'upload du fichier" },
+      { status: 500 }
+    );
   }
 }

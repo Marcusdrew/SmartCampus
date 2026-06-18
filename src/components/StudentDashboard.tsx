@@ -29,6 +29,28 @@ export default function StudentDashboard({ studentCourses, profile, faculties, s
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"COURS" | "SUIVI" | "IA">("COURS");
   const [showClassModal, setShowClassModal] = useState(!profile); // Force setup si pas de profil
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  const handleDownload = async (fileUrl: string, title: string, resourceId: string) => {
+    setDownloadingId(resourceId);
+    try {
+      const response = await fetch(fileUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const extension = fileUrl.split('.').pop()?.split('?')[0] || '';
+      a.download = extension ? `${title}.${extension}` : title;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      window.open(fileUrl, "_blank");
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   // Formulaire d'inscription
   const [formData, setFormData] = useState({
@@ -158,10 +180,16 @@ export default function StudentDashboard({ studentCourses, profile, faculties, s
                               <ul className="space-y-2">
                               {course.resources.map((res: any) => (
                                   <li key={res.id}>
-                                  <a href={res.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center p-3 rounded-xl bg-gradient-to-r from-white/5 to-transparent hover:from-fuchsia-500/20 hover:to-transparent border border-white/10 hover:border-fuchsia-500/30 transition-all group/link">
-                                      <span className="bg-fuchsia-500/20 p-2 rounded-lg text-fuchsia-400 mr-3 group-hover/link:scale-110 transition-transform shadow-[0_0_10px_rgba(217,70,239,0.3)]">📄</span>
-                                      <span className="text-gray-200 font-medium group-hover/link:text-white transition-colors">{res.title}</span>
-                                  </a>
+                                  <button
+                                    onClick={() => handleDownload(res.fileUrl, res.title, res.id)}
+                                    disabled={downloadingId === res.id}
+                                    className="w-full flex items-center p-3 rounded-xl bg-gradient-to-r from-white/5 to-transparent hover:from-fuchsia-500/20 hover:to-transparent border border-white/10 hover:border-fuchsia-500/30 transition-all group/link text-left disabled:opacity-50 cursor-pointer"
+                                  >
+                                      <span className="bg-fuchsia-500/20 p-2 rounded-lg text-fuchsia-400 mr-3 group-hover/link:scale-110 transition-transform shadow-[0_0_10px_rgba(217,70,239,0.3)]">
+                                        {downloadingId === res.id ? "⏳" : "📄"}
+                                      </span>
+                                      <span className="text-gray-200 font-medium group-hover/link:text-white transition-colors">{res.title} {downloadingId === res.id ? "(Téléchargement...)" : ""}</span>
+                                  </button>
                                   </li>
                               ))}
                               </ul>

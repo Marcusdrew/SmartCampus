@@ -102,7 +102,8 @@ export default async function DashboardPage() {
          select: { managedFacultyId: true }
       });
       
-      const facultyFilter = doyenProfile?.managedFacultyId ? { id: doyenProfile.managedFacultyId } : {};
+      const facultyId = doyenProfile?.managedFacultyId || "";
+      const facultyFilter = facultyId ? { id: facultyId } : {};
 
       doyenFaculties = await prisma.faculty.findMany({
         where: facultyFilter,
@@ -127,14 +128,14 @@ export default async function DashboardPage() {
           }
         }
       });
-      doyenCoursesCount = await prisma.course.count({ where: { facultyId: facultyFilter.id } });
-      doyenStudentsCount = await prisma.studentProfile.count({ where: { facultyId: facultyFilter.id } });
+      doyenCoursesCount = await prisma.course.count({ where: facultyId ? { facultyId } : {} });
+      doyenStudentsCount = await prisma.studentProfile.count({ where: facultyId ? { facultyId } : {} });
       doyenSurveys = await prisma.performanceSurvey.findMany({
-         where: { student: { facultyId: facultyFilter.id } },
+         where: facultyId ? { student: { facultyId } } : {},
          include: { student: { include: { promotion: true } } }
       });
       doyenConfusions = await prisma.confusionReport.findMany({
-        where: { course: { facultyId: facultyFilter.id } },
+        where: facultyId ? { course: { facultyId } } : {},
         include: { 
           course: { 
             include: { promotion: true } 

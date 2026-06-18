@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { upload } from "@vercel/blob/client";
 
 // Formulaire interactif pour le téléversement (Upload)
 export default function UploadForm({ courses }: { courses: any[] }) {
@@ -15,6 +16,7 @@ export default function UploadForm({ courses }: { courses: any[] }) {
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
+  const [progress, setProgress] = useState(0);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -33,43 +35,67 @@ export default function UploadForm({ courses }: { courses: any[] }) {
       setMessage("Veuillez sélectionner un fichier.");
       return;
     }
+    if (!formData.courseId) {
+      setStatus("error");
+      setMessage("Veuillez sélectionner un cours cible.");
+      return;
+    }
 
     setStatus("loading");
     setMessage("");
-
-    const data = new FormData();
-    data.append("file", file);
-    data.append("type", formData.type);
-    data.append("courseId", formData.courseId);
-    if (formData.type === "resource") {
-      data.append("title", formData.title);
-    } else {
-      data.append("semester", formData.semester);
-    }
+    setProgress(0);
 
     try {
-      const res = await fetch("/api/professor/upload", {
-        method: "POST",
-        body: data, 
+      // Step 1: Upload directly to Vercel Blob (bypasses serverless 4.5MB limit)
+      const uploadDir = formData.type === "schedule" ? "schedules" : "resources";
+      const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+      const cleanName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
+      const pathname = `${uploadDir}/${uniqueSuffix}-${cleanName}`;
+
+      setProgress(10);
+
+      const blobResult = await upload(pathname, file, {
+        access: "public",
+        handleUploadUrl: "/api/professor/upload",
       });
 
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error || "Erreur lors de l'envoi");
+      setProgress(80);
 
+      // Step 2: Save the database record (resource or schedule)
+      const saveRes = await fetch("/api/professor/upload?action=save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: formData.type,
+          title: formData.title,
+          courseId: formData.courseId,
+          semester: formData.semester,
+          fileUrl: blobResult.url,
+        }),
+      });
+
+      const saveResult = await saveRes.json();
+      if (!saveRes.ok) throw new Error(saveResult.error || "Erreur lors de l'enregistrement");
+
+      setProgress(100);
       setStatus("success");
       setMessage("Fichier envoyé avec succès !");
       setFormData({ type: "resource", title: "", courseId: "", semester: "1" });
       setFile(null);
-      
+
       const fileInput = document.getElementById("file-upload") as HTMLInputElement;
       if (fileInput) fileInput.value = "";
 
       router.refresh();
-      
-      setTimeout(() => setStatus("idle"), 4000);
+
+      setTimeout(() => {
+        setStatus("idle");
+        setProgress(0);
+      }, 4000);
     } catch (err: any) {
       setStatus("error");
-      setMessage(err.message);
+      setMessage(err.message || "Erreur lors de l'envoi du fichier. Vérifiez la configuration Vercel Blob.");
+      setProgress(0);
     }
   };
 
@@ -118,16 +144,36 @@ export default function UploadForm({ courses }: { courses: any[] }) {
           )}
 
           <div className="relative z-10">
-            <input id="file-upload" type="file" required onChange={handleFileChange} className="w-full rounded-2xl border border-white/10 px-4 py-3 bg-black/20 text-white focus:outline-none file:mr-4 file:py-2.5 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-amber-500/20 file:text-amber-400 hover:file:bg-amber-500/30 transition-colors file:cursor-pointer p-0" />
+            <input
+              id="file-upload"
+              type="file"
+              required
+              onChange={handleFileChange}
+              accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip,.rar,.7z,.png,.jpg,.jpeg,.gif,.webp,.svg,.txt,.csv,.mp3,.mp4"
+              className="w-full rounded-2xl border border-white/10 px-4 py-3 bg-black/20 text-white focus:outline-none file:mr-4 file:py-2.5 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-amber-500/20 file:text-amber-400 hover:file:bg-amber-500/30 transition-colors file:cursor-pointer p-0"
+            />
+            <p className="mt-2 text-[10px] text-gray-500">
+              Formats acceptés : PDF, Word, PowerPoint, Excel, Images, Archives ZIP, Audio, Vidéo (max 100 Mo)
+            </p>
           </div>
       </div>
+
+      {/* Progress Bar */}
+      {status === "loading" && progress > 0 && (
+        <div className="w-full bg-black/30 rounded-full h-3 border border-white/5 overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      )}
 
       <button
         type="submit"
         disabled={status === "loading"}
         className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white rounded-2xl font-bold shadow-lg shadow-amber-500/20 transition-all transform hover:-translate-y-0.5 disabled:opacity-50 mt-4 relative z-10"
       >
-        {status === "loading" ? "Transmission Spatiale..." : "Publier le document"}
+        {status === "loading" ? `Transmission en cours... (${progress}%)` : "Publier le document"}
       </button>
     </form>
   );
