@@ -1,98 +1,51 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-
-type Message = { role: "user" | "assistant"; content: string };
-
 export default function StudentAIClient() {
-  const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: "Bonjour ! Je suis l'assistant IA de l'ULC. Comment puis-je vous aider dans vos études aujourd'hui ?" }
-  ]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const sendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || loading) return;
-
-    const newMessages: Message[] = [...messages, { role: "user", content: input }];
-    setMessages(newMessages);
-    setInput("");
-    setLoading(true);
-
-    try {
-      const res = await fetch("/api/student/ai-chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: newMessages.map(m => ({ role: m.role, content: m.content }))
-        })
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error + (data.details ? ` (${data.details})` : "") || "Erreur IA");
-      }
-
-      setMessages([...newMessages, { role: "assistant", content: data.reply }]);
-    } catch (err: any) {
-      setMessages([...newMessages, { role: "assistant", content: `Erreur : ${err.message || "Impossible de contacter l'assistant IA."}` }]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
-    <div className="flex flex-col h-[500px]">
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4">
-        {messages.map((msg, idx) => (
-          <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[85%] p-4 rounded-2xl text-sm leading-relaxed ${
-              msg.role === "user" 
-                ? "bg-cyan-600 text-white rounded-br-none shadow-[0_4px_15px_rgba(8,145,178,0.3)]"
-                : "bg-white/10 text-gray-200 border border-white/5 rounded-bl-none"
-            }`}>
-              {msg.content}
-            </div>
-          </div>
-        ))}
-        {loading && (
-          <div className="flex justify-start">
-            <div className="max-w-[85%] p-4 rounded-2xl text-sm bg-white/10 text-gray-400 border border-white/5 rounded-bl-none flex gap-2">
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-bounce"></span>
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-bounce delay-100"></span>
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-bounce delay-200"></span>
-            </div>
-          </div>
-        )}
-        <div ref={messagesEndRef} />
-      </div>
+    <div className="flex flex-col items-center justify-center min-h-[400px] text-center p-8 bg-gradient-to-br from-cyan-950/20 to-blue-950/20 border border-cyan-500/10 rounded-2xl relative overflow-hidden group">
+      {/* Background soft glow */}
+      <div className="absolute inset-0 bg-cyan-500/5 opacity-30 blur-2xl group-hover:opacity-50 transition-opacity"></div>
       
-      <form onSubmit={sendMessage} className="p-4 border-t border-white/10 mt-auto flex gap-3">
-        <input 
-          type="text" 
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Posez une question sur vos cours..."
-          className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all font-medium"
-        />
-        <button 
-          type="submit" 
-          disabled={loading || !input.trim()}
-          className="px-6 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl shadow-lg shadow-cyan-600/30 transition-all disabled:opacity-50 flex items-center justify-center group"
-        >
-          <span className="group-hover:translate-x-1 transition-transform">Envoyer</span>
-        </button>
-      </form>
+      {/* Animated robot icon wrapper */}
+      <div className="relative w-24 h-24 mb-6 flex items-center justify-center bg-cyan-500/10 border border-cyan-500/30 rounded-3xl shadow-[0_0_30px_rgba(6,182,212,0.15)] animate-pulse">
+        <span className="text-5xl">🤖</span>
+        <span className="absolute -top-1 -right-1 flex h-4 w-4">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-4 w-4 bg-amber-500"></span>
+        </span>
+      </div>
+
+      <div className="relative z-10 max-w-md space-y-4">
+        <span className="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 tracking-wider uppercase">
+          🛠️ En Cours d'Amélioration
+        </span>
+        
+        <h3 className="text-2xl font-black text-white tracking-tight">
+          Assistant IA SmartCampus
+        </h3>
+        
+        <p className="text-sm text-gray-300 leading-relaxed">
+          Nous retravaillons actuellement l'intelligence artificielle pour vous offrir un tuteur académique encore plus précis, performant et directement synchronisé avec les matières de votre semestre.
+        </p>
+
+        <div className="pt-6 border-t border-white/5 flex flex-col sm:flex-row items-center justify-center gap-4 text-xs font-bold text-gray-400">
+          <span className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+            Recherche Contextuelle
+          </span>
+          <span className="hidden sm:inline text-white/10">•</span>
+          <span className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+            Tutorat Ciblé
+          </span>
+          <span className="hidden sm:inline text-white/10">•</span>
+          <span className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
+            100% Hors-ligne Garanti
+          </span>
+        </div>
+      </div>
     </div>
   );
 }
+

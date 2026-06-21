@@ -611,6 +611,17 @@ export default function DoyenDashboard({
                                 </span>
                               ))}
                             </div>
+
+                            {/* Detailed answers */}
+                            {(survey.mentalState || survey.physicalState || survey.financeState || survey.timeState || survey.freeNotes) && (
+                              <div className="mt-3 bg-black/30 border border-white/5 p-3.5 rounded-xl space-y-1.5 text-xs text-gray-300 max-w-md">
+                                {survey.mentalState && <p><strong>Santé Mentale :</strong> {survey.mentalState}</p>}
+                                {survey.physicalState && <p><strong>Fatigue :</strong> {survey.physicalState}</p>}
+                                {survey.financeState && <p><strong>Finances :</strong> {survey.financeState}</p>}
+                                {survey.timeState && <p><strong>Logistique/Temps :</strong> {survey.timeState}</p>}
+                                {survey.freeNotes && <p className="italic text-red-300/80"><strong>Note :</strong> "{survey.freeNotes}"</p>}
+                              </div>
+                            )}
                           </div>
 
                           <button

@@ -31,6 +31,24 @@ export default function StudentDashboard({ studentCourses, profile, faculties, s
   const [showClassModal, setShowClassModal] = useState(!profile); // Force setup si pas de profil
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
+  const calculateCourseAverage = (course: any) => {
+    let totalObtained = 0;
+    let totalMax = 0;
+
+    course.courseWorks?.forEach((work: any) => {
+      const grade = work.grades?.[0];
+      if (grade !== undefined && grade !== null) {
+        totalObtained += grade.value;
+        totalMax += work.maxGrade;
+      }
+    });
+
+    if (totalMax === 0) return null;
+
+    const maxGrade = course.maxGrade || 50;
+    return (totalObtained / totalMax) * maxGrade;
+  };
+
   const handleDownload = async (fileUrl: string, title: string, resourceId: string) => {
     setDownloadingId(resourceId);
     try {
@@ -157,9 +175,11 @@ export default function StudentDashboard({ studentCourses, profile, faculties, s
                   <div key={course.id} className="bg-[#110212]/80 border border-fuchsia-900/40 rounded-3xl p-6 lg:p-8 relative overflow-hidden group shadow-2xl backdrop-blur-md hover:-translate-y-1 transition-all">
                       <div className="absolute top-[-50%] right-[-10%] w-[200px] h-[200px] bg-fuchsia-600/20 rounded-full blur-[80px] group-hover:bg-fuchsia-500/30 transition-colors pointer-events-none"></div>
                       
-                      <div className="flex items-center justify-between mb-6 pb-6 border-b border-white/5">
-                          <div>
-                          <span className="px-3 py-1 bg-fuchsia-500/20 text-fuchsia-300 text-xs font-bold rounded-lg mb-3 inline-block font-mono tracking-wider shadow-[0_0_10px_rgba(217,70,239,0.3)]">{course.code}</span>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-6 border-b border-white/5">
+                          <div className="text-left">
+                          <span className="px-3 py-1 bg-fuchsia-500/20 text-fuchsia-300 text-xs font-bold rounded-lg mb-3 inline-block font-mono tracking-wider shadow-[0_0_10px_rgba(217,70,239,0.3)]">
+                            {course.code} • {course.credits} Crédits
+                          </span>
                           <h3 className="text-xl sm:text-2xl font-black text-white">{course.name}</h3>
                           <p className="mt-2 text-sm text-fuchsia-200/60 font-medium">
                              Enseigné par : {course.professor ? (
@@ -169,6 +189,28 @@ export default function StudentDashboard({ studentCourses, profile, faculties, s
                              )}
                           </p>
                           </div>
+                          
+                          {/* Moyenne du Cours */}
+                          {(() => {
+                             const avg = calculateCourseAverage(course);
+                             if (avg !== null) {
+                                const maxGrade = course.maxGrade || 50;
+                                const status = getGradeStatus(avg, maxGrade);
+                                return (
+                                   <div className="text-left sm:text-right shrink-0 bg-white/5 border border-white/10 px-4 py-2.5 rounded-2xl">
+                                      <span className="block text-xl font-black text-white">{avg.toFixed(1)} <span className="text-xs text-gray-400">/ {maxGrade}</span></span>
+                                      <span className={`inline-block px-2 py-0.5 mt-1 rounded-full text-[10px] font-black border ${status.color}`}>
+                                         Moyenne : {status.label}
+                                      </span>
+                                   </div>
+                                );
+                             }
+                             return (
+                                <div className="text-left sm:text-right shrink-0 bg-white/5 border border-white/5 px-4 py-2.5 rounded-2xl opacity-60">
+                                   <span className="text-xs italic text-gray-500">Aucune note</span>
+                                </div>
+                             );
+                          })()}
                       </div>
   
                       <div className="space-y-6">
@@ -345,7 +387,7 @@ export default function StudentDashboard({ studentCourses, profile, faculties, s
                 </div>
             )}
             
-            <div className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-md shadow-xl transition-all hover:border-orange-500/30">
+            <div className="lg:col-span-2 bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-md shadow-xl transition-all hover:border-orange-500/30">
                {studentCourses.length > 0 ? (
                  <ConfusionForm courses={studentCourses} />
                ) : (

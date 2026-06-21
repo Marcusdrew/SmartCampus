@@ -73,28 +73,6 @@ export default function ProfessorDashboard({ courses, confusions, surveys }: Pro
   // Liste d'étudiants en alerte non résolus
   const unresolvedSurveys = filteredSurveys.filter((s) => !s.resolved);
 
-  // Action pour résoudre une alerte
-  const [resolvingId, setResolvingId] = useState<string | null>(null);
-  const handleResolveAlert = async (surveyId: string) => {
-    setResolvingId(surveyId);
-    try {
-      const res = await fetch("/api/pedagogy/resolve-survey", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ surveyId }),
-      });
-      if (res.ok) {
-        router.refresh();
-      } else {
-        alert("Erreur lors de la mise à jour.");
-      }
-    } catch (err) {
-      alert("Erreur réseau.");
-    } finally {
-      setResolvingId(null);
-    }
-  };
-
   // Estimation de la gravité d'une confusion
   const getConfusionSeverity = (desc: string) => {
     const lowercaseDesc = desc.toLowerCase();
@@ -493,7 +471,7 @@ export default function ProfessorDashboard({ courses, confusions, surveys }: Pro
                 <div>
                   <h3 className="text-xl font-bold text-white">Suivi des Alertes Actives</h3>
                   <p className="text-sm text-red-200/60">
-                    Étudiants en difficulté à contacter. Résolvez leur statut une fois l'entretien pédagogique effectué.
+                    Étudiants en difficulté à contacter pour accompagnement pédagogique (seul le doyen peut résoudre).
                   </p>
                 </div>
               </div>
@@ -509,8 +487,7 @@ export default function ProfessorDashboard({ courses, confusions, surveys }: Pro
                       <tr className="border-b border-red-900/50">
                         <th className="p-4 text-red-400/80 font-bold text-sm">Étudiant</th>
                         <th className="p-4 text-red-400/80 font-bold text-sm">Promotion</th>
-                        <th className="p-4 text-red-400/80 font-bold text-sm">Facteurs Signalés</th>
-                        <th className="p-4 text-red-400/80 font-bold text-sm text-right">Action</th>
+                        <th className="p-4 text-red-400/80 font-bold text-sm text-right">Facteurs Signalés</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -522,8 +499,8 @@ export default function ProfessorDashboard({ courses, confusions, surveys }: Pro
                             </div>
                           </td>
                           <td className="p-4 text-gray-400 text-sm">{survey.student?.promotion?.name || "N/A"}</td>
-                          <td className="p-4">
-                            <div className="flex flex-wrap gap-2">
+                          <td className="p-4 text-right">
+                            <div className="flex flex-wrap gap-2 justify-end">
                               {survey.selectedFactors.map((f: string) => (
                                 <span
                                   key={f}
@@ -533,15 +510,6 @@ export default function ProfessorDashboard({ courses, confusions, surveys }: Pro
                                 </span>
                               ))}
                             </div>
-                          </td>
-                          <td className="p-4 text-right">
-                            <button
-                              onClick={() => handleResolveAlert(survey.id)}
-                              disabled={resolvingId === survey.id}
-                              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs shadow-md transition-all disabled:opacity-50"
-                            >
-                              {resolvingId === survey.id ? "Traitement..." : "Marquer comme résolu"}
-                            </button>
                           </td>
                         </tr>
                       ))}
@@ -789,7 +757,7 @@ export default function ProfessorDashboard({ courses, confusions, surveys }: Pro
                                           disabled={savingGradeId === inputKey || inputValue === ""}
                                           className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50"
                                         >
-                                          {savingGradeId === inputKey ? "Sauvegarde..." : "Enregistrer"}
+                                          {savingGradeId === inputKey ? "Sauvegarde..." : (savedGrade ? "Modifier" : "Enregistrer")}
                                         </button>
                                       </td>
                                     </tr>
