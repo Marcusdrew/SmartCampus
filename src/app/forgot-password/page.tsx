@@ -123,6 +123,7 @@ export default function ForgotPasswordPage() {
                  placeholder="Saisissez votre réponse..."
                  value={answer} 
                  onChange={(e) => setAnswer(e.target.value)} 
+                 autoComplete="off"
                  className="w-full bg-black/50 border border-gray-700 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-blue-500 transition-colors"
                />
             </div>

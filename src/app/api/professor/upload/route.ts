@@ -12,8 +12,22 @@ export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session?.user || !["PROFESSOR", "DOYEN", "ADMIN"].includes(session.user.role)) {
-      return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      console.error("DÉTAIL ERREUR UPLOAD : La variable d'environnement BLOB_READ_WRITE_TOKEN est absente dans vos paramètres de projet Vercel.");
+      return NextResponse.json(
+        { error: "Configuration Vercel Blob manquante (BLOB_READ_WRITE_TOKEN)." },
+        { status: 500 }
+      );
+    }
+
+    if (!session?.user) {
+      console.error("DÉTAIL ERREUR UPLOAD : Aucune session utilisateur trouvée.");
+      return NextResponse.json({ error: "Session expirée ou non autorisée." }, { status: 401 });
+    }
+
+    if (!["PROFESSOR", "DOYEN", "ADMIN"].includes(session.user.role)) {
+      console.error(`DÉTAIL ERREUR UPLOAD : Rôle non autorisé (${session.user.role}).`);
+      return NextResponse.json({ error: "Rôle non autorisé pour le téléversement." }, { status: 403 });
     }
 
     const url = new URL(req.url);

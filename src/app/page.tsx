@@ -1,16 +1,11 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import AuthForms from "@/components/AuthForms";
+import Link from "next/link";
 
 export default async function Home() {
   const session = await getServerSession(authOptions);
-
-  // Redirection automatique si déjà connecté
-  if (session?.user) {
-    redirect("/dashboard");
-  }
 
   // Récupération des données pour le formulaire d'inscription
   const faculties = await prisma.faculty.findMany({
@@ -47,6 +42,14 @@ export default async function Home() {
           <p className="text-lg lg:text-xl text-gray-300 max-w-xl mx-auto lg:mx-0 font-light leading-relaxed">
             Un écosystème d'apprentissage interconnecté. Retrouvez vos ressources, signalez vos incompréhensions et profitez d'un suivi épaulé par l'Intelligence Artificielle.
           </p>
+
+          {session?.user && (
+            <div className="pt-2 animate-in fade-in flex justify-center lg:justify-start">
+              <Link href="/dashboard" className="inline-flex items-center gap-2 px-6 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-500/20 transform hover:-translate-y-0.5">
+                🚀 Accéder à votre Tableau de Bord
+              </Link>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-5 pt-6 max-w-lg mx-auto lg:mx-0">
              <div className="group bg-white/5 border border-white/10 p-6 rounded-3xl backdrop-blur-sm transition-all hover:bg-white/10 hover:border-white/20 hover:-translate-y-1">

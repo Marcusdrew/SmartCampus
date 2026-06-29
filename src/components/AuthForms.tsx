@@ -153,11 +153,11 @@ export default function AuthForms({ faculties }: { faculties: any[] }) {
                 {regStatus === "error" && <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-xl text-red-200 text-sm text-center">{regMessage}</div>}
                 
                 <div className="flex gap-3">
-                  <input type="text" required placeholder="Nom" value={regData.nom} onChange={e => setRegData({...regData, nom: e.target.value})} className="w-1/2 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:ring-2 focus:ring-indigo-500 outline-none" />
-                  <input type="text" placeholder="Postnom" value={regData.postnom} onChange={e => setRegData({...regData, postnom: e.target.value})} className="w-1/2 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:ring-2 focus:ring-indigo-500 outline-none" />
+                  <input type="text" required placeholder="Nom" value={regData.nom} onChange={e => setRegData({...regData, nom: e.target.value})} autoComplete="off" className="w-1/2 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:ring-2 focus:ring-indigo-500 outline-none" />
+                  <input type="text" placeholder="Postnom" value={regData.postnom} onChange={e => setRegData({...regData, postnom: e.target.value})} autoComplete="off" className="w-1/2 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:ring-2 focus:ring-indigo-500 outline-none" />
                 </div>
                 
-                <input type="text" required placeholder="Prénom" value={regData.prenom} onChange={e => setRegData({...regData, prenom: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:ring-2 focus:ring-indigo-500 outline-none" />
+                <input type="text" required placeholder="Prénom" value={regData.prenom} onChange={e => setRegData({...regData, prenom: e.target.value})} autoComplete="off" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:ring-2 focus:ring-indigo-500 outline-none" />
                 
                 <select required value={regData.facultyId} onChange={handleRegFacultyChange} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none appearance-none [&>option]:bg-gray-900 [&>option]:text-white">
                   <option value="" disabled className="text-gray-500">Sélectionnez Faculté</option>
@@ -169,7 +169,7 @@ export default function AuthForms({ faculties }: { faculties: any[] }) {
                   {availablePromotions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
 
-                <input type="password" required placeholder="Mot de passe" value={regData.password} onChange={e => setRegData({...regData, password: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:ring-2 focus:ring-indigo-500 outline-none" />
+                <input type="password" required placeholder="Mot de passe" value={regData.password} onChange={e => setRegData({...regData, password: e.target.value})} autoComplete="new-password" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:ring-2 focus:ring-indigo-500 outline-none" />
 
                 <button type="submit" disabled={regStatus === "loading"} className="w-full py-3.5 bg-white hover:bg-gray-100 text-black rounded-xl font-bold shadow-lg transform hover:-translate-y-0.5 transition-all">
                   {regStatus === "loading" ? "Génération..." : "Créer mon matricule"}

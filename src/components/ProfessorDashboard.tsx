@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import UploadForm from "@/components/UploadForm";
-import AIStatsClient from "@/components/AIStatsClient";
 
 interface ProfessorDashboardProps {
   courses: any[];
@@ -797,7 +796,31 @@ export default function ProfessorDashboard({ courses, confusions, surveys }: Pro
                 <p className="text-emerald-200/50 text-sm mt-1">Détecte les lacunes et propose des améliorations de vos cours</p>
               </div>
             </div>
-            <AIStatsClient />
+            <div className="flex flex-col items-center justify-center min-h-[300px] text-center p-8 bg-gradient-to-br from-emerald-950/20 to-teal-950/20 border border-emerald-500/10 rounded-2xl relative overflow-hidden group">
+              <div className="absolute inset-0 bg-emerald-500/5 opacity-30 blur-2xl group-hover:opacity-50 transition-opacity"></div>
+              
+              <div className="relative w-20 h-20 mb-6 flex items-center justify-center bg-emerald-500/10 border border-emerald-500/30 rounded-2xl shadow-[0_0_20px_rgba(16,185,129,0.15)] animate-pulse">
+                <span className="text-4xl">🧬</span>
+                <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-amber-500"></span>
+                </span>
+              </div>
+
+              <div className="relative z-10 max-w-md space-y-4">
+                <span className="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 tracking-wider uppercase">
+                  🛠️ En Cours d'Amélioration
+                </span>
+                
+                <h3 className="text-xl font-bold text-white tracking-tight">
+                  Assistant Pédagogique IA
+                </h3>
+                
+                <p className="text-sm text-gray-300 leading-relaxed">
+                  Nous retravaillons actuellement ce module pour vous proposer des analyses de performance plus poussées et des recommandations basées sur l'évolution réelle des promotions de votre faculté.
+                </p>
+              </div>
+            </div>
           </div>
         )}
       </div>

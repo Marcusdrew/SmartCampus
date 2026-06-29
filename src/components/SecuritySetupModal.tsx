@@ -103,6 +103,7 @@ export default function SecuritySetupModal({ isVisible }: { isVisible: boolean }
               value={answer} 
               onChange={(e) => setAnswer(e.target.value)} 
               placeholder="Saisissez votre réponse secrète..."
+              autoComplete="off"
               className="w-full bg-black/50 border border-blue-900/50 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500" 
             />
             <p className="text-xs text-gray-500 mt-2 italic">Attention : Retenez bien l'orthographe exacte de votre réponse.</p>

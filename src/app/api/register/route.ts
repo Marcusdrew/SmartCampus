@@ -17,6 +17,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Les noms et prénoms ne doivent pas contenir de chiffres ou de caractères spéciaux." }, { status: 400 });
     }
 
+    // Vérification de doublon d'inscription (Nom + Prénom ensemble)
+    const existingStudent = await prisma.studentProfile.findFirst({
+      where: {
+        nom: { equals: nom.trim(), mode: 'insensitive' },
+        prenom: { equals: prenom.trim(), mode: 'insensitive' }
+      }
+    });
+
+    if (existingStudent) {
+      return NextResponse.json({ error: `Un étudiant nommé '${prenom.trim()} ${nom.trim()}' est déjà inscrit dans le système.` }, { status: 400 });
+    }
+
     // 1. Déterminer l'année académique courante (ex: 2025 pour 2025-2026)
     const currentYear = new Date().getFullYear();
     const yearStart = currentYear; 
